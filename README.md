@@ -1,8 +1,6 @@
 # Fiber::Collector
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/fiber/collector`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+An easy way to schedule and aggregate the results from multiple concurrent tasks inspired by JavaScript's `Promise.all()`, `Promise.any()` and `Promise.race()` methods.
 
 ## Installation
 
@@ -16,7 +14,57 @@ If bundler is not being used to manage dependencies, install the gem by executin
 
 ## Usage
 
-TODO: Write usage instructions here
+Here are some examples where `sleep` is the non-blocking operation, but it could just as well be replaced with calls to `Net::HTTP.get()` or other I/O.
+
+```ruby
+# needs a fiber scheduler
+require 'async'
+
+# Sets the fiber scheduler and executes inside a non-blocking fiber
+Async do
+  # Collect all results
+  Fiber::Collector.schedule { sleep 0.001; 'a' }
+      .and { sleep 0.002; 'b' }
+      .and { sleep 0.003; 'c' }
+      .all(timeout: 0.02)
+end.wait
+# => ['a', 'b', 'c']
+
+Async do
+  Fiber::Collector.schedule { sleep 0.001; 'a' }
+      .and { sleep 0.002; raise 'boom' }
+      .and { sleep 0.003; 'c' }
+      .all
+end.wait
+# RuntimeError raised
+
+Async do
+  Fiber::Collector.schedule { sleep 0.010; 'a' }
+      .and { sleep 0.001; raise 'e' }
+      .and { sleep 0.005; 'b' } 
+      .and { sleep 0.007; 'c' }
+      .any(timeout: 0.02)    
+end.wait
+# => 'b'
+
+Async do
+  Fiber::Collector.schedule { sleep 0.010; 'a' }
+      .and { sleep 0.001; raise XError }
+      .and { sleep 0.005; 'b' } 
+      .and { sleep 0.007; raise YError }
+      .race(timeout: 0.02)    
+end.wait
+# XError raised
+
+Async do
+  Fiber::Collector.schedule { sleep 0.010; raise XError }
+      .and { sleep 0.001; 'a' }
+      .and { sleep 0.005; 'b' } 
+      .and { sleep 0.007; raise YError }
+      .race(timeout: 0.02)    
+end.wait
+# => "a"
+```
 
 ## Development
 
@@ -26,12 +74,8 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/fiber-collector. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [code of conduct](https://github.com/[USERNAME]/fiber-collector/blob/main/CODE_OF_CONDUCT.md).
+Bug reports and pull requests are welcome on GitHub at https://github.com/beatmadsen/fiber-collector. 
 
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
-
-## Code of Conduct
-
-Everyone interacting in the Fiber::Collector project's codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/fiber-collector/blob/main/CODE_OF_CONDUCT.md).
