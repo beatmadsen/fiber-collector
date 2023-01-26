@@ -1,5 +1,7 @@
 # Fiber::Collector
 
+[![Gem Version](https://badge.fury.io/rb/fiber-collector.svg)](https://badge.fury.io/rb/fiber-collector)
+
 An easy way to schedule and aggregate the results from multiple concurrent tasks inspired by JavaScript's `Promise.all()`, `Promise.any()` and `Promise.race()` methods.
 
 ## Installation
